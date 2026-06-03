@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RoadPulse // Pothole & Speed Bump Detector</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="An interactive real-time pothole and speed bump detector utilizing mobile accelerometer and GPS sensors with mapped history and speech warnings.">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a0e1a">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS for Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""/>
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Background Ambient Glows -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <span class="logo-icon">⚡</span>
+        <h1>Road<span>Pulse</span></h1>
+        <span class="badge">PROTOTYPE</span>
+      </div>
+      
+      <div class="header-controls">
+        <div id="connection-status" class="status-indicator warning">
+          <span class="status-dot"></span>
+          <span class="status-text">Sensors Offline</span>
+        </div>
+        <button id="pwa-install-btn" class="btn btn-secondary hidden">Install App</button>
+      </div>
+    </header>
+
+    <!-- Permission / Activation Overlay for Mobile Sensors -->
+    <div id="sensor-permission-overlay" class="overlay">
+      <div class="overlay-card">
+        <h2>Start Road Monitoring</h2>
+        <p>This application reads your device's accelerometer and GPS coordinates to identify road anomalies like potholes and speed bumps in real-time.</p>
+        <div class="permission-actions">
+          <button id="enable-sensors-btn" class="btn btn-primary btn-large">Initialize Sensors & Audio</button>
+          <button id="dismiss-overlay-btn" class="btn btn-text">Simulate on Desktop Instead</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <main class="dashboard-grid">
+      
+      <!-- COLUMN 1: Telemetry & Controls -->
+      <section class="grid-column flex-col">
+        
+        <!-- Live Counters Card -->
+        <div class="card telemetry-grid">
+          <div class="telemetry-item">
+            <span class="telemetry-label">Current G-Force</span>
+            <span id="telemetry-gforce" class="telemetry-value">1.00 <span class="unit">G</span></span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-label">Peak Shock</span>
+            <span id="telemetry-peak-gforce" class="telemetry-value text-safe">0.00 <span class="unit">G</span></span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-label">Vehicle Speed</span>
+            <span id="telemetry-speed" class="telemetry-value">0 <span class="unit">km/h</span></span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-label">Road Events</span>
+            <span id="telemetry-events-count" class="telemetry-value text-accent">0</span>
+          </div>
+        </div>
+
+        <!-- Sensor Plot Card -->
+        <div class="card graph-card flex-grow">
+          <div class="card-header">
+            <h3>Live Accelerometer Feed</h3>
+            <div class="legend">
+              <span class="legend-item"><span class="legend-color magnitude"></span>Magnitude</span>
+              <span class="legend-item"><span class="legend-color z-axis"></span>Z-Axis</span>
+            </div>
+          </div>
+          <div class="canvas-container">
+            <canvas id="sensor-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Simulation & Calibration Controls -->
+        <div class="card controls-card">
+          <div class="tabs-nav">
+            <button class="tab-btn active" data-tab="tab-simulation">Simulate Drive</button>
+            <button class="tab-btn" data-tab="tab-calibration">Calibrate</button>
+          </div>
+          
+          <div class="tab-content active" id="tab-simulation">
+            <p class="tab-desc">No mobile device with sensors? Trigger simulated road signatures to test the algorithms, voice alerts, map pins, and data logs.</p>
+            <div class="sim-actions">
+              <button id="sim-smooth-btn" class="btn btn-outline flex-grow">Smooth Road</button>
+              <button id="sim-bump-btn" class="btn btn-warning flex-grow">⚡ Speed Bump</button>
+              <button id="sim-pothole-btn" class="btn btn-danger flex-grow">🚨 Pothole</button>
+            </div>
+            <div class="sim-auto-panel">
+              <button id="sim-auto-drive-btn" class="btn btn-primary w-full">Start Automated Simulated Drive</button>
+            </div>
+          </div>
+          
+          <div class="tab-content" id="tab-calibration">
+            <div class="setting-item">
+              <div class="setting-header">
+                <label for="slider-pothole-threshold">Pothole Shock Threshold</label>
+                <span id="val-pothole-threshold" class="setting-val">2.8 G</span>
+              </div>
+              <input type="range" id="slider-pothole-threshold" min="1.5" max="5.0" step="0.1" value="2.8">
+              <span class="slider-helper">Sudden, high-amplitude vertical shock (high-frequency spike).</span>
+            </div>
+            
+            <div class="setting-item">
+              <div class="setting-header">
+                <label for="slider-bump-threshold">Speed Bump Threshold</label>
+                <span id="val-bump-threshold" class="setting-val">1.6 G</span>
+              </div>
+              <input type="range" id="slider-bump-threshold" min="1.1" max="2.5" step="0.05" value="1.6">
+              <span class="slider-helper">Gradual vertical acceleration deviation (lower frequency wave).</span>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-header">
+                <label for="toggle-audio-alerts">Voice Speech Warnings</label>
+                <div class="switch">
+                  <input type="checkbox" id="toggle-audio-alerts" checked>
+                  <span class="slider-toggle"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- COLUMN 2: Map & Log -->
+      <section class="grid-column flex-col">
+        
+        <!-- Live Map Card -->
+        <div class="card map-card flex-grow">
+          <div class="card-header">
+            <h3>Anomaly GPS Map</h3>
+            <span class="gps-coords" id="gps-coords">Waiting for GPS...</span>
+          </div>
+          <div id="leaflet-map" class="map-container"></div>
+        </div>
+
+        <!-- History Log Card -->
+        <div class="card log-card">
+          <div class="card-header">
+            <h3>Detected Road Anomalies</h3>
+            <div class="header-actions">
+              <button id="export-json-btn" class="btn btn-text">Export JSON</button>
+              <button id="export-csv-btn" class="btn btn-text">Export CSV</button>
+              <button id="clear-log-btn" class="btn btn-text text-danger">Clear</button>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="log-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Type</th>
+                  <th>G-Force</th>
+                  <th>Speed</th>
+                  <th>Location</th>
+                  <th>AI Hazard Assessment (Local)</th>
+                </tr>
+              </thead>
+              <tbody id="log-body">
+                <tr class="empty-row">
+                  <td colspan="6">No road anomalies detected yet. Move device or start simulation.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
+  
+  <!-- Application JS -->
+  <script src="app.js"></script>
+</body>
+</html>

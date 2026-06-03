@@ -1,0 +1,59 @@
+========================================================================
+ROAD PULSE - START & STOP GUIDE
+========================================================================
+
+Follow these steps to run the RoadPulse application locally on your computer
+and access it from your mobile device.
+
+------------------------------------------------------------------------
+1. HOW TO START THE APP
+------------------------------------------------------------------------
+
+Step 1: Start the Local AI Service (Ollama)
+   Open a terminal and run the following command to start Ollama:
+   $ sudo systemctl start ollama
+
+   (Note: If you want Ollama to always start automatically at boot, run:
+    $ sudo systemctl enable ollama)
+
+Step 2: Start the Web Server
+   Open a new terminal window, navigate to the web project directory, and
+   start the Node.js server:
+   $ cd ~/Documents/softeng1/PotholeDetector_Web
+   $ node server.js
+
+   Keep this terminal open while using the application.
+
+Step 3: Open the Web Application
+   * On your Laptop:
+     Open your browser and go to:
+     https://localhost:8443
+
+   * On your Mobile Phone:
+     Ensure your phone and laptop are on the same Wi-Fi network. Open your
+     phone's web browser and go to the IP address printed in the server's
+     terminal startup logs (e.g., https://10.34.128.82:8443).
+
+   * Bypassing the SSL Warning:
+     Because the server uses a self-signed certificate (required to access
+     mobile sensors in a secure context), your browser will display a security
+     warning:
+     - On Chrome (Laptop/Android): Click "Advanced" -> "Proceed to ... (unsafe)"
+     - On Safari (iPhone): Click "Show Details" -> "visit this website"
+
+------------------------------------------------------------------------
+2. HOW TO STOP THE APP
+------------------------------------------------------------------------
+
+Step 1: Stop the Web Server
+   Go to the terminal where you ran `node server.js` and press:
+   Ctrl + C
+
+Step 2: Free up the Port (If needed)
+   If you get an "EADDRINUSE" error when restarting the server, the port
+   is still occupied by a background process. Free it by running:
+   $ fuser -k 8443/tcp
+
+   Or alternatively:
+   $ kill -9 $(lsof -t -i:8443)
+========================================================================

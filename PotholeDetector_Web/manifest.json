@@ -1,0 +1,17 @@
+{
+  "short_name": "RoadPulse",
+  "name": "RoadPulse Pothole Detector",
+  "description": "Real-time road quality assessment using phone sensors.",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#030712",
+  "theme_color": "#030712",
+  "display": "standalone",
+  "orientation": "portrait"
+}
